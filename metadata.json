@@ -1,0 +1,6 @@
+{
+  "name": "DataPulse",
+  "description": "Gerenciador inteligente de dados móveis para planos ilimitados: controle de redução de velocidade (FUP), consumo de hotspot, aplicativos em segundo plano, monitor de velocidade e diagnóstico de rede.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
