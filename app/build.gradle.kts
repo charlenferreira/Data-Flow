@@ -1,6 +1,4 @@
 import com.google.gms.googleservices.GoogleServicesPlugin.MissingGoogleServicesStrategy
-import com.android.build.gradle.AppExtension
-import com.android.build.gradle.internal.api.BaseVariantOutputImpl
 
 plugins {
   alias(libs.plugins.android.application)
@@ -65,13 +63,6 @@ android {
   dependenciesInfo {
     includeInApk = false
     includeInBundle = true
-  }
-
-  (this as? AppExtension)?.applicationVariants?.all {
-    outputs.all {
-      val output = this as? BaseVariantOutputImpl
-      output?.outputFileName = "DataPulse.apk"
-    }
   }
 }
 
