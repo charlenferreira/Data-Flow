@@ -3,6 +3,7 @@ package com.example.ui
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.BuildConfig
 import com.example.data.local.DailyUsageEntity
 import com.example.data.local.DataPulseDatabase
 import com.example.data.local.SpeedTestEntity
@@ -13,17 +14,25 @@ import com.example.model.NetworkStatus
 import com.example.model.OperatorPreset
 import com.example.model.PlanSettings
 import com.example.model.SpeedTestLiveState
+import com.example.network.AppReleaseInfo
+import com.example.network.DeviceDataSummary
 import com.example.network.NetworkStatsHelper
 import com.example.network.SpeedTestManager
+import com.example.network.UpdateChecker
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+
+sealed class UpdateUiState {
+    object Idle : UpdateUiState()
+    object Checking : UpdateUiState()
+    data class UpdateAvailable(val releaseInfo: AppReleaseInfo) : UpdateUiState()
+    data class UpToDate(val currentVersion: String, val manualCheck: Boolean) : UpdateUiState()
+    data class Error(val message: String, val manualCheck: Boolean) : UpdateUiState()
+}
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -32,6 +41,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = DataUsageRepository(database.dataPulseDao())
     private val networkStatsHelper = NetworkStatsHelper(context)
     private val speedTestManager = SpeedTestManager()
+    private val updateChecker = UpdateChecker()
 
     // Plan Configuration
     private val _planSettings = MutableStateFlow(PlanSettings())
@@ -44,6 +54,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     // Permission state
     private val _hasUsagePermission = MutableStateFlow(networkStatsHelper.hasUsageStatsPermission())
     val hasUsagePermission: StateFlow<Boolean> = _hasUsagePermission.asStateFlow()
+
+    private val _showUsagePermissionDialog = MutableStateFlow(!networkStatsHelper.hasUsageStatsPermission())
+    val showUsagePermissionDialog: StateFlow<Boolean> = _showUsagePermissionDialog.asStateFlow()
 
     // App Usage List
     private val _allAppUsage = MutableStateFlow<List<AppUsageItem>>(emptyList())
@@ -59,6 +72,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     // Speed test state
     private val _speedTestLiveState = MutableStateFlow(SpeedTestLiveState())
     val speedTestLiveState: StateFlow<SpeedTestLiveState> = _speedTestLiveState.asStateFlow()
+
+    // Update checker state
+    private val _updateState = MutableStateFlow<UpdateUiState>(UpdateUiState.Idle)
+    val updateState: StateFlow<UpdateUiState> = _updateState.asStateFlow()
 
     // History flows from Room
     val dailyUsageHistory: StateFlow<List<DailyUsageEntity>> = repository.recentUsage
@@ -85,11 +102,39 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _hotspotUsedGB = MutableStateFlow(4.35f)
     val hotspotUsedGB: StateFlow<Float> = _hotspotUsedGB.asStateFlow()
 
+    private val _daysRemainingInCycle = MutableStateFlow(12)
+    val daysRemainingInCycle: StateFlow<Int> = _daysRemainingInCycle.asStateFlow()
+
+    private val _recommendedDailyGB = MutableStateFlow(1.3f)
+    val recommendedDailyGB: StateFlow<Float> = _recommendedDailyGB.asStateFlow()
+
+    private val _deviceUsageSummary = MutableStateFlow(DeviceDataSummary(0L, 0L, 0L, 0L))
+    val deviceUsageSummary: StateFlow<DeviceDataSummary> = _deviceUsageSummary.asStateFlow()
+
     init {
         viewModelScope.launch {
             repository.seedInitialHistoryIfNeeded()
             refreshData()
+            checkForUpdates(manual = false)
         }
+    }
+
+    fun calculateCycleProjections() {
+        val cal = java.util.Calendar.getInstance()
+        val today = cal.get(java.util.Calendar.DAY_OF_MONTH)
+        val maxDays = cal.getActualMaximum(java.util.Calendar.DAY_OF_MONTH)
+        val resetDay = _planSettings.value.billingCycleResetDay
+
+        val daysLeft = if (today < resetDay) {
+            resetDay - today
+        } else {
+            (maxDays - today) + resetDay
+        }.coerceAtLeast(1)
+
+        _daysRemainingInCycle.value = daysLeft
+
+        val remainingGB = (_planSettings.value.highSpeedFupLimitGB - _cycleUsedMobileGB.value).coerceAtLeast(0f)
+        _recommendedDailyGB.value = remainingGB / daysLeft
     }
 
     fun refreshData() {
@@ -97,11 +142,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _hasUsagePermission.value = permitted
         _networkStatus.value = networkStatsHelper.getCurrentNetworkStatus()
 
+        val (cycleStart, now) = networkStatsHelper.getBillingCycleTimes(_planSettings.value.billingCycleResetDay)
+        val deviceSummary = networkStatsHelper.getDeviceTotalUsage(cycleStart, now)
+        _deviceUsageSummary.value = deviceSummary
+
         val apps = networkStatsHelper.getAppUsageList(_planSettings.value.billingCycleResetDay)
         _allAppUsage.value = apps
 
-        // Compute total cycle mobile data from apps
-        val totalBytes = apps.sumOf { it.totalBytes }
+        // Compute total cycle mobile data
+        val totalBytes = if (deviceSummary.totalMobileBytes > 0) {
+            deviceSummary.totalMobileBytes
+        } else {
+            apps.sumOf { it.totalBytes }
+        }
+
         if (totalBytes > 0) {
             val totalGB = (totalBytes.toDouble() / (1024.0 * 1024.0 * 1024.0)).toFloat()
             _cycleUsedMobileGB.value = totalGB
@@ -112,10 +166,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (hotspotApp != null) {
             _hotspotUsedGB.value = (hotspotApp.totalBytes.toDouble() / (1024.0 * 1024.0 * 1024.0)).toFloat()
         }
+        calculateCycleProjections()
     }
 
     fun updatePlanSettings(newSettings: PlanSettings) {
         _planSettings.value = newSettings
+        calculateCycleProjections()
     }
 
     fun selectPreset(preset: OperatorPreset) {
@@ -124,6 +180,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             highSpeedFupLimitGB = preset.defaultFupGB,
             hotspotLimitGB = preset.defaultHotspotGB
         )
+        calculateCycleProjections()
     }
 
     fun setCategoryFilter(category: AppCategory?) {
@@ -161,5 +218,33 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             repository.deleteSpeedTest(id)
         }
+    }
+
+    fun checkForUpdates(manual: Boolean = true) {
+        viewModelScope.launch {
+            _updateState.value = UpdateUiState.Checking
+            val result = updateChecker.checkForUpdates()
+            result.onSuccess { info ->
+                if (info.isNewerVersion) {
+                    _updateState.value = UpdateUiState.UpdateAvailable(info)
+                } else {
+                    _updateState.value = UpdateUiState.UpToDate(BuildConfig.VERSION_NAME, manual)
+                }
+            }.onFailure { err ->
+                _updateState.value = UpdateUiState.Error(err.message ?: "Não foi possível verificar atualizações.", manual)
+            }
+        }
+    }
+
+    fun dismissUpdateDialog() {
+        _updateState.value = UpdateUiState.Idle
+    }
+
+    fun dismissUsagePermissionDialog() {
+        _showUsagePermissionDialog.value = false
+    }
+
+    fun requestUsagePermissionDialog() {
+        _showUsagePermissionDialog.value = true
     }
 }

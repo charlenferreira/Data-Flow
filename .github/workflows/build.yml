@@ -5,9 +5,6 @@ on:
   push:
     branches: [ "**" ]
 
-permissions:
-  contents: write
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -33,12 +30,8 @@ jobs:
       - name: Compilar o APK
         run: gradle assembleDebug -Djava.awt.headless=true
 
-      - name: Publicar automaticamente no Releases
-        uses: softprops/action-gh-release@v2
+      - name: Guardar o APK gerado
+        uses: actions/upload-artifact@v4
         with:
-          tag_name: "v1.0.${{ github.run_number }}"
-          name: "Versão 1.0.${{ github.run_number }}"
-          body: "APK gerado automaticamente pela nuvem, pronto a instalar!"
-          files: app/build/outputs/apk/debug/*.apk
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: DataPulse-apk
+          path: app/build/outputs/apk/debug/*.apk

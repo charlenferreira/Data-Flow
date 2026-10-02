@@ -1,4 +1,6 @@
 import com.google.gms.googleservices.GoogleServicesPlugin.MissingGoogleServicesStrategy
+import com.android.build.gradle.AppExtension
+import com.android.build.gradle.internal.api.BaseVariantOutputImpl
 
 plugins {
   alias(libs.plugins.android.application)
@@ -8,14 +10,18 @@ plugins {
   alias(libs.plugins.google.services)
 }
 
+base {
+  archivesName.set("DataPulse")
+}
+
 android {
   namespace = "com.example"
   compileSdk { version = release(36) { minorApiLevel = 1 } }
 
   defaultConfig {
     applicationId = "com.aistudio.unlimiteddata.nxkpqv"
-    minSdk = 24
-    targetSdk = 36
+    minSdk = 26
+    targetSdk = 35
     versionCode = 1
     versionName = "1.0"
 
@@ -48,8 +54,8 @@ android {
     debug { signingConfig = signingConfigs.getByName("debugConfig") }
   }
   compileOptions {
-    sourceCompatibility = JavaVersion.VERSION_11
-    targetCompatibility = JavaVersion.VERSION_11
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
   }
   buildFeatures {
     compose = true
@@ -59,6 +65,13 @@ android {
   dependenciesInfo {
     includeInApk = false
     includeInBundle = true
+  }
+
+  (this as? AppExtension)?.applicationVariants?.all {
+    outputs.all {
+      val output = this as? BaseVariantOutputImpl
+      output?.outputFileName = "DataPulse.apk"
+    }
   }
 }
 

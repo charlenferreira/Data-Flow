@@ -17,6 +17,16 @@ import com.example.model.ConnectionType
 import com.example.model.NetworkStatus
 import java.util.Calendar
 
+data class DeviceDataSummary(
+    val mobileRxBytes: Long,
+    val mobileTxBytes: Long,
+    val wifiRxBytes: Long,
+    val wifiTxBytes: Long
+) {
+    val totalMobileBytes: Long get() = (mobileRxBytes + mobileTxBytes).coerceAtLeast(0L)
+    val totalWifiBytes: Long get() = (wifiRxBytes + wifiTxBytes).coerceAtLeast(0L)
+}
+
 class NetworkStatsHelper(private val context: Context) {
 
     private val connectivityManager =
@@ -109,6 +119,63 @@ class NetworkStatsHelper(private val context: Context) {
         cal.set(Calendar.SECOND, 0)
         cal.set(Calendar.MILLISECOND, 0)
         return Pair(cal.timeInMillis, now)
+    }
+
+    /**
+     * Quantifies bytes received and sent for both Mobile and Wi-Fi networks using NetworkStatsManager.
+     */
+    fun getDeviceTotalUsage(startTime: Long, endTime: Long): DeviceDataSummary {
+        var mobileRx = 0L
+        var mobileTx = 0L
+        var wifiRx = 0L
+        var wifiTx = 0L
+
+        if (hasUsageStatsPermission() && networkStatsManager != null) {
+            try {
+                val mobileBucket = networkStatsManager.querySummaryForDevice(
+                    ConnectivityManager.TYPE_MOBILE,
+                    null,
+                    startTime,
+                    endTime
+                )
+                if (mobileBucket != null) {
+                    mobileRx = mobileBucket.rxBytes
+                    mobileTx = mobileBucket.txBytes
+                }
+            } catch (_: Exception) {}
+
+            try {
+                val wifiBucket = networkStatsManager.querySummaryForDevice(
+                    ConnectivityManager.TYPE_WIFI,
+                    null,
+                    startTime,
+                    endTime
+                )
+                if (wifiBucket != null) {
+                    wifiRx = wifiBucket.rxBytes
+                    wifiTx = wifiBucket.txBytes
+                }
+            } catch (_: Exception) {}
+        }
+
+        // Fallback to TrafficStats if NetworkStatsManager returns 0 or without permission
+        if (mobileRx == 0L && mobileTx == 0L) {
+            mobileRx = TrafficStats.getMobileRxBytes().coerceAtLeast(0L)
+            mobileTx = TrafficStats.getMobileTxBytes().coerceAtLeast(0L)
+        }
+        if (wifiRx == 0L && wifiTx == 0L) {
+            val totalRx = TrafficStats.getTotalRxBytes().coerceAtLeast(0L)
+            val totalTx = TrafficStats.getTotalTxBytes().coerceAtLeast(0L)
+            wifiRx = (totalRx - mobileRx).coerceAtLeast(0L)
+            wifiTx = (totalTx - mobileTx).coerceAtLeast(0L)
+        }
+
+        return DeviceDataSummary(
+            mobileRxBytes = mobileRx,
+            mobileTxBytes = mobileTx,
+            wifiRxBytes = wifiRx,
+            wifiTxBytes = wifiTx
+        )
     }
 
     /**

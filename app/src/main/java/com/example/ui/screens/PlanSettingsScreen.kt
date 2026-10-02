@@ -42,6 +42,15 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.SystemUpdate
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedButton
+import com.example.BuildConfig
 import com.example.model.OperatorPreset
 import com.example.model.PlanSettings
 import com.example.ui.theme.CardBorderDark
@@ -54,8 +63,10 @@ fun PlanSettingsScreen(
     planSettings: PlanSettings,
     onUpdatePlanSettings: (PlanSettings) -> Unit,
     onSelectPreset: (OperatorPreset) -> Unit,
+    onCheckUpdates: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val scrollState = rememberScrollState()
 
     Column(
@@ -388,6 +399,105 @@ fun PlanSettingsScreen(
             }
         }
 
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // GitHub Repository & Update Checker Card
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = CardDark),
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, CardBorderDark, RoundedCornerShape(16.dp))
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Code,
+                            contentDescription = null,
+                            tint = NeonCyan,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Repositório & Atualizações",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                    }
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant
+                    ) {
+                        Text(
+                            text = "v${BuildConfig.VERSION_NAME}",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = NeonCyan,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = "O Data Pulse verifica automaticamente novas versões publicadas no repositório GitHub oficial: charlenferreira/consumo-de-dados.",
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    lineHeight = 16.sp
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = onCheckUpdates,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = NeonCyan,
+                            contentColor = MaterialTheme.colorScheme.surface
+                        ),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag("check_github_updates_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.SystemUpdate,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Verificar Agora", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    OutlinedButton(
+                        onClick = {
+                            try {
+                                val intent = Intent(
+                                    Intent.ACTION_VIEW,
+                                    Uri.parse("https://github.com/charlenferreira/consumo-de-dados")
+                                )
+                                context.startActivity(intent)
+                            } catch (_: Exception) {}
+                        },
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Abrir GitHub", fontSize = 12.sp)
+                    }
+                }
+            }
+        }
+
         Spacer(modifier = Modifier.height(20.dp))
 
         // FAQ Section Answering the User's exact prompt
@@ -401,8 +511,15 @@ fun PlanSettingsScreen(
         Spacer(modifier = Modifier.height(10.dp))
 
         FaqCard(
+            question = "Ele reduz a internet após bater o limite?",
+            answer = "Quem reduz a velocidade é a sua OPERADORA através da Política de Uso Justo (FUP), e não este aplicativo. O app não corta sua conexão: ele audita seu tráfego, calcula sua meta diária de GB e alerta antes que sua operadora rebaixe sua velocidade de 300 Mbps para 512 Kbps."
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        FaqCard(
             question = "Por que meu plano tem limite se é 'ilimitado'?",
-            answer = "Operadoras utilizam a Política de Uso Justo (FUP - Fair Usage Policy). A navegação continua livre, porém a velocidade cai de 300+ Mbps para 256kbps ou 1Mbps após a cota máxima."
+            answer = "Operadoras utilizam a Política de Uso Justo (FUP - Fair Usage Policy). A navegação continua livre e sem cobrança por megabyte adicional, porém a velocidade é reduzida após a cota contratual de alta velocidade."
         )
 
         Spacer(modifier = Modifier.height(8.dp))

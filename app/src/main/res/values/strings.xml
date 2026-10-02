@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">DataPulse</string>
+    <string name="app_name">Data Pulse</string>
     <string name="tab_overview">Visão Geral</string>
     <string name="tab_apps">Aplicativos</string>
     <string name="tab_speed">Diagnóstico</string>

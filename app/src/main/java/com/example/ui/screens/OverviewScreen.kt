@@ -57,6 +57,13 @@ import com.example.ui.components.CircularDataGauge
 import com.example.ui.components.UsageBarChart
 import com.example.ui.theme.CardBorderDark
 import com.example.ui.theme.CardDark
+import android.content.Intent
+import android.provider.Settings
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.material.icons.filled.DataSaverOn
+import androidx.compose.material.icons.filled.HourglassTop
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import com.example.ui.theme.CyberIndigo
 import com.example.ui.theme.DangerRose
 import com.example.ui.theme.MintEmerald
@@ -70,12 +77,15 @@ fun OverviewScreen(
     cycleUsedGB: Float,
     todayUsedGB: Float,
     hotspotUsedGB: Float,
+    daysRemaining: Int = 12,
+    recommendedDailyGB: Float = 1.3f,
     dailyUsageList: List<DailyUsageEntity>,
     onNavigateToApps: () -> Unit,
     onNavigateToSpeed: () -> Unit,
     onNavigateToSettings: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val scrollState = rememberScrollState()
     var showUnlimitedWhyDialog by remember { mutableStateOf(false) }
 
@@ -266,6 +276,78 @@ fun OverviewScreen(
                             .clickable { onNavigateToSettings() }
                             .testTag("adjust_plan_button")
                     )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Card Explicativo: O que acontece ao bater o limite?
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = CardDark),
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, CardBorderDark, RoundedCornerShape(16.dp))
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.HourglassTop,
+                        contentDescription = null,
+                        tint = NeonCyan,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Ele reduz a internet após bater o limite?",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = "• O aplicativo NÃO reduz sua internet: apenas sua operadora tem o controle técnico para reduzir a velocidade na antena após o teto contratual (FUP).\n" +
+                           "• Meta sugerida: use até ${String.format(java.util.Locale.US, "%.1f", recommendedDailyGB)} GB/dia para manter 5G rápido nos próximos $daysRemaining dias do ciclo.\n" +
+                           "• Quer economizar dados ativamente? Ative a Economia de Dados nativa do Android abaixo.",
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    lineHeight = 16.sp
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Button(
+                    onClick = {
+                        try {
+                            val intent = Intent("android.settings.DATA_SAVER_SETTINGS")
+                            context.startActivity(intent)
+                        } catch (_: Exception) {
+                            try {
+                                val intent = Intent(Settings.ACTION_WIRELESS_SETTINGS)
+                                context.startActivity(intent)
+                            } catch (_: Exception) {}
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = NeonCyan
+                    ),
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("open_data_saver_button")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.DataSaverOn,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(text = "Abrir Economizador de Dados do Android", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
