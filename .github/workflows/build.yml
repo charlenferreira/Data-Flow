@@ -36,7 +36,7 @@ jobs:
       - name: Salvar APK nos Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: meu-aplicativo-apk
+          name: ${{ github.event.repository.name }}-apk
           path: app/build/outputs/apk/debug/*.apk
 
       - name: Publicar direto no Releases
@@ -44,7 +44,7 @@ jobs:
         with:
           tag_name: "v1.0.${{ github.run_number }}"
           name: "Versão 1.0.${{ github.run_number }}"
-          body: "APK gerado automaticamente pela nuvem, pronto para instalar!"
+          body: "APK do ${{ github.event.repository.name }} compilado automaticamente e pronto para instalar!"
           files: app/build/outputs/apk/debug/*.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
