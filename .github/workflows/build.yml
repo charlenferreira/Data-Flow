@@ -24,7 +24,7 @@ jobs:
       - name: Garantir debug.keystore permanente
         run: |
           if [ ! -f "debug.keystore" ]; then
-            echo "Gerando debug.keystore fixa..."
+            echo "Gerando debug.keystore permanente..."
             keytool -genkeypair -v \
               -keystore debug.keystore \
               -storepass android \
@@ -41,7 +41,7 @@ jobs:
             git commit -m "chore: salvar debug.keystore permanente [skip ci]" || echo "Nenhuma mudanca"
             git push || echo "Push ignorado"
           else
-            echo "debug.keystore ja existe!"
+            echo "debug.keystore ja existe no repositorio!"
           fi
 
       - name: Sincronizar versao interna do app com o GitHub Actions
@@ -64,13 +64,12 @@ jobs:
           REPO_NAME="${{ github.event.repository.name }}"
           ORIGINAL_APK=$(ls app/build/outputs/apk/debug/*.apk | head -n 1)
           cp "$ORIGINAL_APK" "app/build/outputs/apk/debug/${REPO_NAME}-${TAG_NAME}.apk"
-          cp "$ORIGINAL_APK" "app/build/outputs/apk/debug/DataFlow.apk"
 
       - name: Salvar APK nos Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ${{ github.event.repository.name }}-apk
-          path: app/build/outputs/apk/debug/*.apk
+          path: app/build/outputs/apk/debug/*-v*.apk
 
       - name: Publicar direto no Releases
         uses: softprops/action-gh-release@v2
@@ -78,6 +77,6 @@ jobs:
           tag_name: "v1.0.${{ github.run_number }}"
           name: "Versão 1.0.${{ github.run_number }}"
           body: "Instalador do ${{ github.event.repository.name }} v1.0.${{ github.run_number }} pronto para instalar e atualizar!"
-          files: app/build/outputs/apk/debug/*.apk
+          files: app/build/outputs/apk/debug/*-v*.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
