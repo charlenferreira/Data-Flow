@@ -1,6 +1,6 @@
 {
-  "name": "Data Pulse",
-  "description": "Aplicativo para monitoramento inteligente de consumo de dados móveis e Wi-Fi com checagem automática de atualizações via GitHub.",
+  "name": "Data Flow",
+  "description": "Utilitário robusto de sistema combinando telemetria avançada de bateria estilo AccuBattery, monitoramento inteligente de rede móvel/Wi-Fi e personalização completa de sistema.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

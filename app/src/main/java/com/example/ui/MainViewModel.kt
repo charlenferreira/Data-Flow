@@ -4,12 +4,14 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.BuildConfig
+import com.example.battery.BatteryTelemetryHelper
 import com.example.data.local.DailyUsageEntity
 import com.example.data.local.DataPulseDatabase
 import com.example.data.local.SpeedTestEntity
 import com.example.data.repository.DataUsageRepository
 import com.example.model.AppCategory
 import com.example.model.AppUsageItem
+import com.example.model.BatteryTelemetry
 import com.example.model.NetworkStatus
 import com.example.model.OperatorPreset
 import com.example.model.PlanSettings
@@ -42,6 +44,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val networkStatsHelper = NetworkStatsHelper(context)
     private val speedTestManager = SpeedTestManager()
     private val updateChecker = UpdateChecker()
+    private val batteryHelper = BatteryTelemetryHelper(context)
+
+    // Battery Telemetry (AccuBattery style)
+    private val _batteryTelemetry = MutableStateFlow(batteryHelper.readBatteryTelemetry())
+    val batteryTelemetry: StateFlow<BatteryTelemetry> = _batteryTelemetry.asStateFlow()
 
     // Plan Configuration
     private val _planSettings = MutableStateFlow(PlanSettings())
@@ -167,6 +174,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _hotspotUsedGB.value = (hotspotApp.totalBytes.toDouble() / (1024.0 * 1024.0 * 1024.0)).toFloat()
         }
         calculateCycleProjections()
+        refreshBatteryTelemetry()
     }
 
     fun updatePlanSettings(newSettings: PlanSettings) {
@@ -246,5 +254,23 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun requestUsagePermissionDialog() {
         _showUsagePermissionDialog.value = true
+    }
+
+    fun refreshBatteryTelemetry() {
+        val current = _batteryTelemetry.value
+        _batteryTelemetry.value = batteryHelper.readBatteryTelemetry(
+            alarmEnabled = current.chargeAlarmEnabled,
+            alarmThreshold = current.chargeAlarmThreshold
+        )
+    }
+
+    fun toggleBatteryAlarm(enabled: Boolean) {
+        val current = _batteryTelemetry.value
+        _batteryTelemetry.value = current.copy(chargeAlarmEnabled = enabled)
+    }
+
+    fun setBatteryAlarmThreshold(threshold: Int) {
+        val current = _batteryTelemetry.value
+        _batteryTelemetry.value = current.copy(chargeAlarmThreshold = threshold)
     }
 }

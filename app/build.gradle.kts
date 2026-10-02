@@ -9,7 +9,7 @@ plugins {
 }
 
 base {
-  archivesName.set("DataPulse")
+  archivesName.set("DataFlow")
 }
 
 android {

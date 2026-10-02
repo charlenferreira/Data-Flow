@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Apps
+import androidx.compose.material.icons.filled.BatteryChargingFull
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Security
@@ -55,6 +56,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.ui.MainViewModel
 import com.example.ui.UpdateUiState
 import com.example.ui.screens.AppsUsageScreen
+import com.example.ui.screens.BatteryScreen
 import com.example.ui.screens.OverviewScreen
 import com.example.ui.screens.PlanSettingsScreen
 import com.example.ui.screens.SpeedDiagnosticScreen
@@ -64,10 +66,11 @@ import com.example.ui.theme.MyApplicationTheme
 import com.example.ui.theme.NeonCyan
 
 enum class AppScreen(val title: String, val icon: ImageVector, val tag: String) {
-    OVERVIEW("Visão Geral", Icons.Default.Dashboard, "tab_overview"),
-    APPS("Apps", Icons.Default.Apps, "tab_apps"),
+    OVERVIEW("Geral", Icons.Default.Dashboard, "tab_overview"),
+    BATTERY("Bateria", Icons.Default.BatteryChargingFull, "tab_battery"),
+    APPS("Rede & Apps", Icons.Default.Apps, "tab_apps"),
     SPEED("Diagnóstico", Icons.Default.Speed, "tab_speed"),
-    SETTINGS("Meu Plano", Icons.Default.Tune, "tab_settings")
+    SETTINGS("Sistema", Icons.Default.Tune, "tab_settings")
 }
 
 class MainActivity : ComponentActivity() {
@@ -104,6 +107,7 @@ fun MainAppContainer(viewModel: MainViewModel = viewModel()) {
     val daysRemaining by viewModel.daysRemainingInCycle.collectAsStateWithLifecycle()
     val recommendedDailyGB by viewModel.recommendedDailyGB.collectAsStateWithLifecycle()
     val updateState by viewModel.updateState.collectAsStateWithLifecycle()
+    val batteryTelemetry by viewModel.batteryTelemetry.collectAsStateWithLifecycle()
 
     // Handle back button on sub-screens
     if (currentScreen != AppScreen.OVERVIEW) {
@@ -269,7 +273,7 @@ fun MainAppContainer(viewModel: MainViewModel = viewModel()) {
             CenterAlignedTopAppBar(
                 title = {
                     Text(
-                        text = "Data Pulse",
+                        text = "Data Flow",
                         fontWeight = FontWeight.Bold,
                         fontSize = 18.sp
                     )
@@ -339,9 +343,20 @@ fun MainAppContainer(viewModel: MainViewModel = viewModel()) {
                     daysRemaining = daysRemaining,
                     recommendedDailyGB = recommendedDailyGB,
                     dailyUsageList = dailyUsageHistory,
+                    batteryTelemetry = batteryTelemetry,
                     onNavigateToApps = { currentScreen = AppScreen.APPS },
                     onNavigateToSpeed = { currentScreen = AppScreen.SPEED },
                     onNavigateToSettings = { currentScreen = AppScreen.SETTINGS },
+                    onNavigateToBattery = { currentScreen = AppScreen.BATTERY },
+                    modifier = Modifier.padding(innerPadding)
+                )
+            }
+            AppScreen.BATTERY -> {
+                BatteryScreen(
+                    telemetry = batteryTelemetry,
+                    onToggleAlarm = { viewModel.toggleBatteryAlarm(it) },
+                    onThresholdChange = { viewModel.setBatteryAlarmThreshold(it) },
+                    onRefresh = { viewModel.refreshBatteryTelemetry() },
                     modifier = Modifier.padding(innerPadding)
                 )
             }

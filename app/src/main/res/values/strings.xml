@@ -1,18 +1,25 @@
 <resources>
-    <string name="app_name">Data Pulse</string>
+    <string name="app_name">Data Flow</string>
     <string name="tab_overview">Visão Geral</string>
-    <string name="tab_apps">Aplicativos</string>
+    <string name="tab_battery">Bateria</string>
+    <string name="tab_apps">Rede &amp; Apps</string>
     <string name="tab_speed">Diagnóstico</string>
-    <string name="tab_settings">Meu Plano</string>
+    <string name="tab_settings">Sistema</string>
     <string name="unlimited_badge">Plano Ilimitado</string>
-    <string name="unlimited_desc">Mesmo sem franquia fixa, controle a redução de velocidade e economize bateria.</string>
+    <string name="unlimited_desc">Audite o tráfego móvel e Wi-Fi e acompanhe o desgaste e saúde da bateria.</string>
     <string name="fup_threshold_label">Limite Alta Velocidade (FUP)</string>
     <string name="today_usage">Uso Hoje</string>
     <string name="cycle_usage">Ciclo Atual</string>
     <string name="hotspot_usage">Roteador / Hotspot</string>
-    <string name="speed_test_title">Teste de Conexão em Tempo Real</string>
+    <string name="speed_test_title">Diagnóstico de Rede</string>
     <string name="start_speed_test">Iniciar Teste de Rede</string>
     <string name="permission_usage_title">Permissão de Acesso ao Uso de Dados</string>
     <string name="permission_usage_desc">Para detalhar o consumo real de cada aplicativo, ative a permissão de acesso ao uso nas configurações.</string>
     <string name="grant_permission">Ativar Permissão</string>
+    <string name="battery_telemetry_title">Telemetria de Bateria</string>
+    <string name="battery_current">Corrente Instantânea</string>
+    <string name="battery_voltage">Tensão</string>
+    <string name="battery_temperature">Temperatura</string>
+    <string name="battery_health">Saúde</string>
+    <string name="battery_wear_protection">Alarme de Carga Segura (80%)</string>
 </resources>

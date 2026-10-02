@@ -64,12 +64,13 @@ jobs:
           REPO_NAME="${{ github.event.repository.name }}"
           ORIGINAL_APK=$(ls app/build/outputs/apk/debug/*.apk | head -n 1)
           cp "$ORIGINAL_APK" "app/build/outputs/apk/debug/${REPO_NAME}-${TAG_NAME}.apk"
+          cp "$ORIGINAL_APK" "app/build/outputs/apk/debug/DataFlow.apk"
 
       - name: Salvar APK nos Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ${{ github.event.repository.name }}-apk
-          path: app/build/outputs/apk/debug/*-v*.apk
+          path: app/build/outputs/apk/debug/*.apk
 
       - name: Publicar direto no Releases
         uses: softprops/action-gh-release@v2
@@ -77,6 +78,6 @@ jobs:
           tag_name: "v1.0.${{ github.run_number }}"
           name: "Versão 1.0.${{ github.run_number }}"
           body: "Instalador do ${{ github.event.repository.name }} v1.0.${{ github.run_number }} pronto para instalar e atualizar!"
-          files: app/build/outputs/apk/debug/*-v*.apk
+          files: app/build/outputs/apk/debug/*.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

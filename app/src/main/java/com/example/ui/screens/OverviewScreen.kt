@@ -51,6 +51,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.local.DailyUsageEntity
+import com.example.model.BatteryTelemetry
 import com.example.model.NetworkStatus
 import com.example.model.PlanSettings
 import com.example.ui.components.CircularDataGauge
@@ -60,12 +61,16 @@ import com.example.ui.theme.CardDark
 import android.content.Intent
 import android.provider.Settings
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.material.icons.filled.BatteryChargingFull
+import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.DataSaverOn
+import androidx.compose.material.icons.filled.DeviceThermostat
 import androidx.compose.material.icons.filled.HourglassTop
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import com.example.ui.theme.CyberIndigo
 import com.example.ui.theme.DangerRose
+import com.example.ui.theme.EmeraldGreen
 import com.example.ui.theme.MintEmerald
 import com.example.ui.theme.NeonCyan
 import com.example.ui.theme.WarningAmber
@@ -80,9 +85,11 @@ fun OverviewScreen(
     daysRemaining: Int = 12,
     recommendedDailyGB: Float = 1.3f,
     dailyUsageList: List<DailyUsageEntity>,
+    batteryTelemetry: BatteryTelemetry? = null,
     onNavigateToApps: () -> Unit,
     onNavigateToSpeed: () -> Unit,
     onNavigateToSettings: () -> Unit,
+    onNavigateToBattery: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -146,6 +153,89 @@ fun OverviewScreen(
         }
 
         Spacer(modifier = Modifier.height(14.dp))
+
+        // AccuBattery Status Summary Card
+        if (batteryTelemetry != null) {
+            Card(
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = CardDark),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, CardBorderDark, RoundedCornerShape(18.dp))
+                    .clickable { onNavigateToBattery() }
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Surface(
+                            shape = CircleShape,
+                            color = if (batteryTelemetry.isCharging) EmeraldGreen.copy(alpha = 0.15f) else NeonCyan.copy(alpha = 0.15f),
+                            modifier = Modifier.size(44.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = if (batteryTelemetry.isCharging) Icons.Default.BatteryChargingFull else Icons.Default.Bolt,
+                                    contentDescription = null,
+                                    tint = if (batteryTelemetry.isCharging) EmeraldGreen else NeonCyan,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        Column {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "Bateria: ${batteryTelemetry.levelPercent}%",
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onBackground
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                if (batteryTelemetry.isCharging) {
+                                    Surface(
+                                        shape = RoundedCornerShape(4.dp),
+                                        color = EmeraldGreen.copy(alpha = 0.2f)
+                                    ) {
+                                        Text(
+                                            text = "CARREGANDO",
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = EmeraldGreen,
+                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                }
+                            }
+                            Text(
+                                text = "${batteryTelemetry.currentNowMa} mA • ${String.format("%.1f", batteryTelemetry.temperatureCelsius)}°C • ${batteryTelemetry.voltageVolts}V",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    Button(
+                        onClick = onNavigateToBattery,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = NeonCyan.copy(alpha = 0.15f),
+                            contentColor = NeonCyan
+                        ),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text("Detalhes", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+        }
 
         // "Por que gerenciar internet ilimitada?" Callout Card
         Card(
