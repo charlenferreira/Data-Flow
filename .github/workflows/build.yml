@@ -1,0 +1,31 @@
+name: Gerar APK Android
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "**" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar o codigo
+        uses: actions/checkout@v4
+
+      - name: Configurar Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Dar permissao de execucao ao Gradle
+        run: chmod +x gradlew
+
+      - name: Compilar o APK
+        run: ./gradlew assembleDebug
+
+      - name: Salvar o APK gerado
+        uses: actions/upload-artifact@v4
+        with:
+          name: meu-aplicativo-apk
+          path: app/build/outputs/apk/debug/*.apk
